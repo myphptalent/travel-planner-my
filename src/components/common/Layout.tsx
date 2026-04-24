@@ -2,6 +2,7 @@ import { useState } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import Footer from "./Footer";
+import Toast from "./Toast";
 import { Outlet } from "react-router-dom";
 
 export default function Layout() {
@@ -38,6 +39,9 @@ export default function Layout() {
           onClick={() => setIsOpen(false)}
         />
       )}
+
+      {/* Toast Notifications */}
+      <Toast />
     </div>
   );
 }

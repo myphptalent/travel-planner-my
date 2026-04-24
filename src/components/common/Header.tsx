@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import { logoutUser } from "../../redux/slices/authSlice";
 import useTheme from "../../hooks/useTheme";
-import { getUser, logout } from "../../utils/auth";
 
 export default function Header({ toggleSidebar }: any) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const user = getUser();
+  const dispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.auth.user);
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -19,6 +21,11 @@ export default function Header({ toggleSidebar }: any) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleLogout = () => {
+    dispatch(logoutUser());
+    navigate("/login");
+  };
 
   return (
     <header className="h-20 flex items-center justify-between px-6 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 transition-colors duration-300">
@@ -39,7 +46,7 @@ export default function Header({ toggleSidebar }: any) {
             Smart Travel Planner
           </h2>
           <p className="text-xs font-medium text-blue-600 dark:text-blue-400">
-            Welcome back, {user?.name.split(' ')[0]}!
+            Welcome back, {user?.name.split(" ")[0]}!
           </p>
         </div>
       </div>
@@ -78,7 +85,7 @@ export default function Header({ toggleSidebar }: any) {
                 <span className="text-sm font-bold text-gray-800 dark:text-gray-100">{user.name}</span>
                 <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">Premium User</span>
               </div>
-              <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path d="M19 9l-7 7-7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
@@ -93,13 +100,16 @@ export default function Header({ toggleSidebar }: any) {
                 
                 <div className="p-2">
                   <button
-                    onClick={() => { navigate("/saved-trips"); setOpen(false); }}
+                    onClick={() => {
+                      navigate("/saved-trips");
+                      setOpen(false);
+                    }}
                     className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl transition"
                   >
                     <span>💾</span> Saved Trips
                   </button>
                   <button
-                    onClick={() => { logout(); navigate("/login"); }}
+                    onClick={handleLogout}
                     className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition"
                   >
                     <span>🚪</span> Sign Out

@@ -1,5 +1,18 @@
 import { useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import {
+  setSearchParams,
+  resetSearch,
+  setWeatherLoading,
+  setWeather,
+  setCountryLoading,
+  setCountry,
+  setAttractionsLoading,
+  setAttractions,
+} from "../redux/slices/searchSlice";
+import { saveTrip } from "../redux/slices/tripsSlice";
+import { showToast, closeModal, openModal } from "../redux/slices/uiSlice";
 import { getWeather } from "../api/weatherApi";
 import { getCountry } from "../api/countryApi";
 import { getAttractions } from "../api/foursquareApi";
@@ -8,10 +21,11 @@ import WeatherCard from "../components/common/WeatherCard";
 import CountryCard from "../components/common/CountryCard";
 import AttractionsList from "../components/common/AttractionsList";
 import Modal from "../components/common/Modal";
-
+import { useState } from "react";
 
 export default function SearchResults() {
   const { search } = useLocation();
+  const dispatch = useAppDispatch();
   const params = new URLSearchParams(search);
 
   const city = params.get("city");
@@ -19,45 +33,73 @@ export default function SearchResults() {
   const lon = Number(params.get("lon"));
   const countryCode = params.get("country");
 
-  const [weather, setWeather] = useState<any>(null);
-  const [country, setCountry] = useState<any>(null);
-  const [attractions, setAttractions] = useState<any[]>([]);
-
-  const [openModal, setOpenModal] = useState(false);
-  const [toast, setToast] = useState("");
+  // Redux selectors
+  const searchState = useAppSelector((state) => state.search);
+  const modal = useAppSelector((state) => state.ui.modal);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
   // RESET
   useEffect(() => {
     if (!city) {
-      setWeather(null);
-      setCountry(null);
-      setAttractions([]);
+      dispatch(resetSearch());
+    } else {
+      dispatch(
+        setSearchParams({
+          city,
+          lat,
+          lon,
+          countryCode: countryCode || "",
+        })
+      );
     }
-  }, [city]);
+  }, [city, lat, lon, countryCode, dispatch]);
 
   // WEATHER
   useEffect(() => {
     if (!lat || !lon) return;
-    getWeather(lat, lon).then(setWeather);
-  }, [lat, lon]);
+    dispatch(setWeatherLoading(true));
+    getWeather(lat, lon)
+      .then((data) => {
+        dispatch(setWeather(data));
+      })
+      .catch((error) => {
+        console.error("Error fetching weather:", error);
+        dispatch(showToast({ message: "Failed to fetch weather", type: "error" }));
+      });
+  }, [lat, lon, dispatch]);
 
   // COUNTRY
   useEffect(() => {
     if (!countryCode) return;
-    getCountry(countryCode).then(setCountry);
-  }, [countryCode]);
+    dispatch(setCountryLoading(true));
+    getCountry(countryCode)
+      .then((data) => {
+        dispatch(setCountry(data));
+      })
+      .catch((error) => {
+        console.error("Error fetching country:", error);
+        dispatch(showToast({ message: "Failed to fetch country info", type: "error" }));
+      });
+  }, [countryCode, dispatch]);
 
   // ATTRACTIONS
   useEffect(() => {
     if (!lat || !lon) return;
-    getAttractions(lat, lon).then(setAttractions);
-  }, [lat, lon]);
+    dispatch(setAttractionsLoading(true));
+    getAttractions(lat, lon)
+      .then((data) => {
+        dispatch(setAttractions(data));
+      })
+      .catch((error) => {
+        console.error("Error fetching attractions:", error);
+        dispatch(showToast({ message: "Failed to fetch attractions", type: "error" }));
+      });
+  }, [lat, lon, dispatch]);
 
   const handleScheduleTrip = () => {
-    if (!startDate || !endDate) {
-      showToast("Please select dates");
+    if (!startDate || !endDate || !city) {
+      dispatch(showToast({ message: "Please select dates", type: "error" }));
       return;
     }
 
@@ -67,54 +109,44 @@ export default function SearchResults() {
       lat,
       lon,
       weather: {
-        temp: weather?.main?.temp,
-        condition: weather?.weather?.[0]?.main,
-        description: weather?.weather?.[0]?.description,
-        feels_like: weather?.main?.feels_like,
-        humidity: weather?.main?.humidity,
-        wind: weather?.wind?.speed,
-        clouds: weather?.clouds?.all,
+        temp: searchState.weather?.main?.temp,
+        condition: searchState.weather?.weather?.[0]?.main,
+        description: searchState.weather?.weather?.[0]?.description,
+        feels_like: searchState.weather?.main?.feels_like,
+        humidity: searchState.weather?.main?.humidity,
+        wind: searchState.weather?.wind?.speed,
+        clouds: searchState.weather?.clouds?.all,
       },
       country: {
-        name: country?.name?.common,
-        flag: country?.flags?.png,
-        capital: country?.capital?.[0],
-        region: country?.region,
-        population: country?.population,
-        currency: (Object.values(country?.currencies || {})?.[0] as any)?.name,
-        languages: Object.values(country?.languages || {})?.join(", "),
+        name: searchState.country?.name?.common,
+        flag: searchState.country?.flags?.png,
+        capital: searchState.country?.capital?.[0],
+        region: searchState.country?.region,
+        population: searchState.country?.population,
+        currency: (
+          Object.values(searchState.country?.currencies || {})?.[0] as any
+        )?.name,
+        languages: Object.values(searchState.country?.languages || {})?.join(
+          ", "
+        ),
       },
-      attractions: attractions.slice(0, 8),
+      attractions: searchState.attractions.slice(0, 8),
       startDate,
       endDate,
       savedAt: new Date().toISOString(),
     };
 
-    const stored =
-      JSON.parse(localStorage.getItem("savedTrips") || "[]");
-
-    const index = stored.findIndex(
-      (t: any) => t.lat === lat && t.lon === lon
+    // Dispatch save trip action
+    dispatch(saveTrip(trip));
+    dispatch(
+      showToast({
+        message: "Trip scheduled 🎉",
+        type: "success",
+      })
     );
-
-    if (index !== -1) {
-      stored[index] = { ...stored[index], ...trip };
-      showToast("Trip updated ✨");
-    } else {
-      stored.unshift(trip);
-      showToast("Trip scheduled 🎉");
-    }
-
-    localStorage.setItem("savedTrips", JSON.stringify(stored));
-
-    setOpenModal(false);
+    dispatch(closeModal());
     setStartDate("");
     setEndDate("");
-  };
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 2500);
   };
 
   return (
@@ -122,14 +154,14 @@ export default function SearchResults() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-             Search Trips
+            Search Trips
           </h1>
           <p className="text-gray-500 text-sm dark:text-gray-400">
             Search and explore travel destinations
           </p>
         </div>
-        </div>
-      
+      </div>
+
       {/* Search */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 
 dark:bg-none dark:bg-gray-800 
@@ -151,23 +183,26 @@ p-4 rounded-2xl">
               </p>
             </div>
 
-            {weather && country && attractions.length > 0 && (
-              <button
-                onClick={() => setOpenModal(true)}
-                className="bg-purple-600 text-white px-5 py-2 rounded-xl"
-              >
-                📅 Schedule Trip
-              </button>
-            )}
+            {searchState.weather &&
+              searchState.country &&
+              searchState.attractions.length > 0 && (
+                <button
+                  onClick={() => dispatch(openModal("schedule"))}
+                  className="bg-purple-600 text-white px-5 py-2 rounded-xl hover:bg-purple-700 transition"
+                >
+                  📅 Schedule Trip
+                </button>
+              )}
           </div>
 
-          {/* Weather */}
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <WeatherCard weather={weather} />
-  <CountryCard country={country} />
-</div>
+          {/* Weather and Country */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <WeatherCard weather={searchState.weather} />
+            <CountryCard country={searchState.country} />
+          </div>
 
-<AttractionsList attractions={attractions} />
+          {/* Attractions */}
+          <AttractionsList attractions={searchState.attractions} />
         </>
       ) : (
         <div className="text-center text-gray-400">
@@ -177,56 +212,46 @@ p-4 rounded-2xl">
 
       {/* MODAL */}
       <Modal
-        isOpen={openModal}
-        onClose={() => setOpenModal(false)}
+        isOpen={modal.isOpen && modal.type === "schedule"}
+        onClose={() => dispatch(closeModal())}
         title="Schedule Trip"
       >
-        <div >
-            <p className="text-gray-500 text-sm mb-4 dark:text-gray-400">
-              {city}
-            </p>
+        <div>
+          <p className="text-gray-500 text-sm mb-4 dark:text-gray-400">
+            {city}
+          </p>
 
-            <input
-              type="date"
-              className="w-full border p-2 mb-3 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
+          <input
+            type="date"
+            className="w-full border p-2 mb-3 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
 
-            <input
-              type="date"
-              className="w-full border p-2 mb-4 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
+          <input
+            type="date"
+            className="w-full border p-2 mb-4 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
 
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setOpenModal(false)}
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition dark:bg-gray-600 dark:hover:bg-gray-500"
-              >
-                Maybe Later
-              </button>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => dispatch(closeModal())}
+              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition dark:bg-gray-600 dark:hover:bg-gray-500"
+            >
+              Maybe Later
+            </button>
 
-              <button
-                onClick={handleScheduleTrip}
-                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
-              >
-                Confirm Trip
-              </button>
-            </div>
+            <button
+              onClick={handleScheduleTrip}
+              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
+            >
+              Confirm Trip
+            </button>
           </div>
-      
-      </Modal>
-
-     
-
-      {/* TOAST */}
-      {toast && (
-        <div className="fixed bottom-5 right-5 bg-black text-white px-4 py-2 rounded">
-          {toast}
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

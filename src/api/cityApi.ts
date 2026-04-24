@@ -4,7 +4,7 @@ export const searchCities = async (query: string) => {
   const res = await cityApi.get(`/cities`, {
     params: {
       namePrefix: query,
-      limit: 5,
+      limit: 10,
     },
 
   });

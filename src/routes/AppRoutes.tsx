@@ -1,4 +1,8 @@
+import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
+import { useAppDispatch } from "../redux/hooks";
+import { initializeAuth } from "../redux/slices/authSlice";
+import { initializeTrips } from "../redux/slices/tripsSlice";
 import Layout from "../components/common/Layout";
 import ProtectedRoute from "../components/common/ProtectedRoute";
 
@@ -9,6 +13,14 @@ import SavedTrips from "../pages/SavedTrips";
 import TripDetails from "../pages/TripDetails";
 
 export default function AppRoutes() {
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    // Initialize Redux state from localStorage
+    dispatch(initializeAuth());
+    dispatch(initializeTrips());
+  }, [dispatch]);
+
   return (
     <Routes>
       {/* Public */}

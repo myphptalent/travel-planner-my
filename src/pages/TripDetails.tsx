@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-
+import { useMemo } from "react";
+import { useAppSelector } from "../redux/hooks";
 import WeatherCard from "../components/common/WeatherCard";
 import CountryCard from "../components/common/CountryCard";
 import AttractionsList from "../components/common/AttractionsList";
@@ -8,13 +8,12 @@ import AttractionsList from "../components/common/AttractionsList";
 export default function TripDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [trip, setTrip] = useState<any>(null);
+  const savedTrips = useAppSelector((state) => state.trips.savedTrips);
 
-  useEffect(() => {
-    const trips = JSON.parse(localStorage.getItem("savedTrips") || "[]");
-    const found = trips.find((t: any) => t.id === id);
-    setTrip(found);
-  }, [id]);
+  // Find the trip from Redux state
+  const trip = useMemo(() => {
+    return savedTrips.find((t: any) => t.id === id);
+  }, [savedTrips, id]);
 
   if (!trip) {
     return (
@@ -55,8 +54,8 @@ export default function TripDetails() {
               },
             }
           : {},
-        languages: trip.country.language
-          ? { lang: trip.country.language }
+        languages: trip.country.languages
+          ? { lang: trip.country.languages }
           : {},
       }
     : null;

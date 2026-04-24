@@ -1,21 +1,45 @@
-import { useEffect, useState } from "react";
-import { getDashboardStats, getRecentTrips } from "../utils/dashboardStats";
+import { useMemo } from "react";
+import { useAppSelector } from "../redux/hooks";
 import StatCard from "../components/common/StatCard";
 import RecentTrips from "../components/dashboard/RecentTrips";
 
 export default function Home() {
-  const [stats, setStats] = useState({
-    totalTrips: 0,
-    uniqueDestinations: 0,
-    upcomingTrips: 0,
-  });
+  const savedTrips = useAppSelector((state) => state.trips.savedTrips);
 
-  const [recentTrips, setRecentTrips] = useState<any[]>([]);
+  // Calculate dashboard stats from trips
+  const stats = useMemo(() => {
+    if (!Array.isArray(savedTrips) || savedTrips.length === 0) {
+      return {
+        totalTrips: 0,
+        uniqueDestinations: 0,
+        upcomingTrips: 0,
+      };
+    }
 
-  useEffect(() => {
-    setStats(getDashboardStats());
-    setRecentTrips(getRecentTrips(5));
-  }, []);
+    const today = new Date();
+
+    const totalTrips = savedTrips.length;
+
+    const uniqueDestinations = new Set(
+      savedTrips.map((t) => t.city)
+    ).size;
+
+    const upcomingTrips = savedTrips.filter((t) => {
+      if (!t.startDate) return false;
+      return new Date(t.startDate) >= today;
+    }).length;
+
+    return {
+      totalTrips,
+      uniqueDestinations,
+      upcomingTrips,
+    };
+  }, [savedTrips]);
+
+  // Get recent trips
+  const recentTrips = useMemo(() => {
+    return [...savedTrips].slice(-5).reverse();
+  }, [savedTrips]);
 
   return (
     <div className="space-y-6">

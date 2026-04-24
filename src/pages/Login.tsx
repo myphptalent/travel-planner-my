@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { login } from "../utils/auth";
+import { useAppDispatch } from "../redux/hooks";
+import { loginSuccess } from "../redux/slices/authSlice";
 import Header from "../components/common/Header";
 import Footer from "../components/common/Footer";
 
@@ -11,6 +12,7 @@ type FormData = {
 
 export default function Login() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
   const {
     register,
@@ -23,9 +25,11 @@ export default function Login() {
       id: Date.now(),
       email: data.email,
       name: data.email.split("@")[0],
+      avatar: `https://ui-avatars.com/api/?name=${data.email.split("@")[0]}&background=random`,
     };
 
-    login(user);
+    // Dispatch Redux action to login user
+    dispatch(loginSuccess(user));
     navigate("/");
   };
 

@@ -1,8 +1,23 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { isAuthenticated } from "../../utils/auth";
+import { useAppSelector } from "../../redux/hooks";
 
 export default function ProtectedRoute() {
-  if (!isAuthenticated()) {
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const initializing = useAppSelector((state) => state.auth.initializing);
+
+  // Show loading state while initializing auth from localStorage
+  if (initializing) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 

@@ -1,40 +1,39 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { deleteTrip } from "../redux/slices/tripsSlice";
 
 export default function SavedTrips() {
-  const [trips, setTrips] = useState<any[]>([]);
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const trips = useAppSelector((state) => state.trips.savedTrips);
   const [sortBy, setSortBy] = useState("latest");
 
-  const navigate = useNavigate();
+  // Sorting
+  const sortedTrips = useMemo(() => {
+    return [...trips].sort((a, b) => {
+      if (sortBy === "latest") {
+        return (
+          new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+        );
+      }
+      if (sortBy === "oldest") {
+        return (
+          new Date(a.savedAt).getTime() - new Date(b.savedAt).getTime()
+        );
+      }
+      if (sortBy === "city") {
+        return (a.city || "").localeCompare(b.city || "");
+      }
+      return 0;
+    });
+  }, [trips, sortBy]);
 
-  // Load data
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("savedTrips") || "[]");
-    setTrips(stored);
-  }, []);
-
-  // Delete
+  // Delete trip
   const handleDelete = (id: string) => {
     if (!id) return;
-
-    const updated = trips.filter((trip) => trip.id !== id);
-    setTrips(updated);
-    localStorage.setItem("savedTrips", JSON.stringify(updated));
+    dispatch(deleteTrip(id));
   };
-
-  // Sorting
-  const sortedTrips = [...trips].sort((a, b) => {
-    if (sortBy === "latest") {
-      return new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime();
-    }
-    if (sortBy === "oldest") {
-      return new Date(a.savedAt).getTime() - new Date(b.savedAt).getTime();
-    }
-    if (sortBy === "city") {
-      return (a.city || "").localeCompare(b.city || "");
-    }
-    return 0;
-  });
 
   return (
     <div className="space-y-6">
@@ -42,7 +41,7 @@ export default function SavedTrips() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-             Saved Trips
+            Saved Trips
           </h1>
           <p className="text-gray-500 text-sm dark:text-gray-400">
             Manage your saved travel plans
@@ -106,6 +105,7 @@ rounded-2xl p-5 transition hover:-translate-y-1"
                   <img
                     src={trip.country.flag}
                     className="w-6 h-4 rounded"
+                    alt={countryName}
                   />
                 )}
                 <span className="text-sm text-gray-600 dark:text-gray-400">
