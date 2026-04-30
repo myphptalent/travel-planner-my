@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { logoutUser } from "../../redux/slices/authSlice";
 import useTheme from "../../hooks/useTheme";
+import DateTimeDisplay from "./DateTimeDisplay";
 
 export default function Header({ toggleSidebar }: any) {
   const { theme, toggleTheme } = useTheme();
@@ -53,7 +54,8 @@ export default function Header({ toggleSidebar }: any) {
 
       {/* Right Section */}
       <div className="flex items-center gap-3">
-        
+        {/* Date & Time */}
+        <DateTimeDisplay />
         {/* Modern Theme Switcher */}
         <button
           onClick={toggleTheme}

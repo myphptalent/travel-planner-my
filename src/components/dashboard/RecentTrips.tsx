@@ -67,7 +67,7 @@ export default function RecentTrips({ trips }: any) {
 
         {/* Date Range */}
         {(start || end) && (
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-sm text-gray-500 dark:text-gray-300">
             📅{" "}
             {start && end
               ? `${start} → ${end}`
@@ -75,6 +75,14 @@ export default function RecentTrips({ trips }: any) {
               ? start
               : end}
           </p>
+        )}
+        
+        {trip.onewayTrip && (
+          <p className="text-sm text-gray-500 dark:text-gray-300">
+            🚶‍♂️ One-way trip </p>
+        ) || (
+          <p className="text-sm text-gray-500 dark:text-gray-300">
+            🔄 Round-trip </p>
         )}
       </div>
     );

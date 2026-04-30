@@ -28,6 +28,7 @@ export interface Trip {
   startDate: string;
   endDate: string;
   savedAt: string;
+  onewayTrip: boolean;
 }
 
 interface TripsState {

@@ -121,7 +121,32 @@ rounded-2xl p-5 transition hover:-translate-y-1"
                   : ""}
               </div>
 
-              {/* Attractions */}
+              {/* Date Range */}
+              {(trip.startDate || trip.endDate) && (
+                <p className="text-xs text-gray-500 mt-1 space-y-1 dark:text-gray-400">
+                  📅{" "}
+                  {trip.startDate && trip.endDate
+                    ? `${new Date(trip.startDate).toLocaleDateString()} → ${new Date(trip.endDate).toLocaleDateString()}`
+                    : trip.startDate
+                    ? new Date(trip.startDate).toLocaleDateString()
+                    : trip.endDate
+                    ? new Date(trip.endDate).toLocaleDateString()
+                    : "N/A"}
+                </p>
+              )}
+              
+              {/* Trip Type */}
+              {trip.onewayTrip && (
+                <p className="text-xs text-gray-500 mt-1 space-y-1 dark:text-gray-400">
+                  🚶‍♂️ One-way trip
+                </p>
+              ) || (
+                <p className="text-xs text-gray-500 mt-1 space-y-1 dark:text-gray-400">
+                  🔄 Round-trip
+                </p>
+              )}
+
+            {/* Attractions */}
               <div className="mt-3">
                 <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
                   Top Attractions:
@@ -134,14 +159,6 @@ rounded-2xl p-5 transition hover:-translate-y-1"
                   ))}
                 </ul>
               </div>
-
-              {/* Date */}
-              <p className="text-xs text-gray-400 mt-3">
-                Saved on:{" "}
-                {trip.savedAt
-                  ? new Date(trip.savedAt).toLocaleDateString()
-                  : "N/A"}
-              </p>
 
               {/* View Details */}
               <button

@@ -38,7 +38,7 @@ export default function Home() {
 
   // Get recent trips
   const recentTrips = useMemo(() => {
-    return [...savedTrips].slice(-5).reverse();
+    return [...savedTrips].slice(-7).reverse();
   }, [savedTrips]);
 
   return (

@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import {
   setSearchParams,
@@ -38,6 +38,8 @@ export default function SearchResults() {
   const modal = useAppSelector((state) => state.ui.modal);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [oneway, setOneway] = useState(false);
+  const endDateRef = useRef<HTMLInputElement>(null);
 
   // RESET
   useEffect(() => {
@@ -98,9 +100,16 @@ export default function SearchResults() {
   }, [lat, lon, dispatch]);
 
   const handleScheduleTrip = () => {
-    if (!startDate || !endDate || !city) {
-      dispatch(showToast({ message: "Please select dates", type: "error" }));
-      return;
+    if (oneway) {
+      if (!startDate || !city) {
+        dispatch(showToast({ message: "Please select a start date and city", type: "error" }));
+        return;
+      }
+    } else {
+      if (!startDate || !endDate || !city) {
+        dispatch(showToast({ message: "Please select dates and city", type: "error" }));
+        return;
+      }
     }
 
     const trip = {
@@ -134,6 +143,7 @@ export default function SearchResults() {
       startDate,
       endDate,
       savedAt: new Date().toISOString(),
+      onewayTrip: oneway,
     };
 
     // Dispatch save trip action
@@ -147,6 +157,15 @@ export default function SearchResults() {
     dispatch(closeModal());
     setStartDate("");
     setEndDate("");
+  };
+  const handleOnewayTrip = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setOneway(e.target.checked);
+    if(e.target.checked) {
+      setEndDate("");
+      endDateRef.current?.setAttribute("disabled", "true");
+    } else {
+      endDateRef.current?.removeAttribute("disabled");
+    }
   };
 
   return (
@@ -220,7 +239,7 @@ p-4 rounded-2xl">
           <p className="text-gray-500 text-sm mb-4 dark:text-gray-400">
             {city}
           </p>
-
+          <span><input type="checkbox" id="oneway" className="mb-4" checked={oneway} onChange={handleOnewayTrip} /> One-way trip </span>
           <input
             type="date"
             className="w-full border p-2 mb-3 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
@@ -230,6 +249,7 @@ p-4 rounded-2xl">
 
           <input
             type="date"
+            ref={endDateRef}
             className="w-full border p-2 mb-4 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
