@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
-export interface Trip {
+export type Trip = {
   id: string;
   city: string;
   lat: number;
@@ -29,6 +29,7 @@ export interface Trip {
   endDate: string;
   savedAt: string;
   onewayTrip: boolean;
+  isFavorite: boolean;
 }
 
 interface TripsState {
@@ -97,6 +98,17 @@ const tripsSlice = createSlice({
       state.error = null;
     },
 
+    // Set favorite
+    toggleFavorite: (state, action: PayloadAction<string> ) => {
+      const trip = state.savedTrips.find(t => t.id === action.payload);
+      if (trip) {
+        trip.isFavorite = !trip.isFavorite;
+        console.log(`Trip ${trip.city} favorite status: ${trip.isFavorite}`);
+        saveTripsToStorage(state.savedTrips);
+        state.error = null;
+      }
+    },
+
     // Set current trip
     setCurrentTrip: (state, action: PayloadAction<Trip | null>) => {
       state.currentTrip = action.payload;
@@ -127,6 +139,7 @@ export const {
   setLoading,
   setError,
   clearError,
+  toggleFavorite,
 } = tripsSlice.actions;
 
 export default tripsSlice.reducer;

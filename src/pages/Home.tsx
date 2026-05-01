@@ -11,7 +11,7 @@ export default function Home() {
     if (!Array.isArray(savedTrips) || savedTrips.length === 0) {
       return {
         totalTrips: 0,
-        uniqueDestinations: 0,
+        favoriteCount: 0,
         upcomingTrips: 0,
       };
     }
@@ -20,9 +20,9 @@ export default function Home() {
 
     const totalTrips = savedTrips.length;
 
-    const uniqueDestinations = new Set(
-      savedTrips.map((t) => t.city)
-    ).size;
+    const favoriteCount = savedTrips.filter(
+        (t) => t.isFavorite
+      ).length;
 
     const upcomingTrips = savedTrips.filter((t) => {
       if (!t.startDate) return false;
@@ -31,7 +31,7 @@ export default function Home() {
 
     return {
       totalTrips,
-      uniqueDestinations,
+      favoriteCount,
       upcomingTrips,
     };
   }, [savedTrips]);
@@ -57,13 +57,13 @@ export default function Home() {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
-          title="Trips Planned"
+          title="Planned Trips"
           value={stats.totalTrips}
           color="text-blue-600"
         />
         <StatCard
-          title="Saved Destinations"
-          value={stats.uniqueDestinations}
+          title="Favorite Trips"
+          value={stats.favoriteCount}
           color="text-indigo-600"
         />
         <StatCard

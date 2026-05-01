@@ -144,6 +144,7 @@ export default function SearchResults() {
       endDate,
       savedAt: new Date().toISOString(),
       onewayTrip: oneway,
+      isFavorite: false,
     };
 
     // Dispatch save trip action

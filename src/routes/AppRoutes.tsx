@@ -11,6 +11,7 @@ import Home from "../pages/Home";
 import SearchResults from "../pages/SearchResults";
 import SavedTrips from "../pages/SavedTrips";
 import TripDetails from "../pages/TripDetails";
+import ErrorBoundary from "../components/ErrorBoundary";
 
 export default function AppRoutes() {
   const dispatch = useAppDispatch();
@@ -31,8 +32,8 @@ export default function AppRoutes() {
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<SearchResults />} />
-          <Route path="/saved-trips" element={<SavedTrips />} />
-          <Route path="/trip/:id" element={<TripDetails />} />
+          <Route path="/saved-trips" element={ <ErrorBoundary> <SavedTrips /> </ErrorBoundary>} />
+          <Route path="/trip/:id" element={ <ErrorBoundary><TripDetails /> </ErrorBoundary>} />
         </Route>
       </Route>
     </Routes>

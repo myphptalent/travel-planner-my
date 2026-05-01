@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
-import { deleteTrip } from "../redux/slices/tripsSlice";
+import { deleteTrip, toggleFavorite } from "../redux/slices/tripsSlice";
+import ConfirmModal from "../components/common/ConfirmModal";
+import { showToast } from "../redux/slices/uiSlice";
 
 export default function SavedTrips() {
   const navigate = useNavigate();
@@ -9,55 +11,112 @@ export default function SavedTrips() {
   const trips = useAppSelector((state) => state.trips.savedTrips);
   const [sortBy, setSortBy] = useState("latest");
 
-  // Sorting
-  const sortedTrips = useMemo(() => {
-    return [...trips].sort((a, b) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const handleDelete = (id: string) => {
+    setSelectedId(id);
+    setIsModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedId) {
+      dispatch(deleteTrip(selectedId));
+    }
+    setIsModalOpen(false);
+    setSelectedId(null);
+  };
+
+  const cancelDelete = () => {
+    setIsModalOpen(false);
+    setSelectedId(null);
+  };
+
+  const handleFavorite = (id: string) => {
+    dispatch(toggleFavorite(id));
+    dispatch(
+          showToast({
+            message: "Trip favorite status updated ❤️",
+            type: "success",
+          })
+        );
+  };
+
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const filteredTrips = useMemo(() => {
+      let result = [...trips];
+
+      if (showFavoritesOnly) {
+        result = result.filter((trip) => trip.isFavorite);
+      }
+
+      // Existing sorting logic
       if (sortBy === "latest") {
-        return (
-          new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+        result.sort(
+          (a, b) =>
+            new Date(b.savedAt).getTime() -
+            new Date(a.savedAt).getTime()
         );
       }
       if (sortBy === "oldest") {
-        return (
-          new Date(a.savedAt).getTime() - new Date(b.savedAt).getTime()
+        result.sort(
+          (a, b) =>
+            new Date(a.savedAt).getTime() -
+            new Date(b.savedAt).getTime()
         );
       }
-      if (sortBy === "city") {
-        return (a.city || "").localeCompare(b.city || "");
-      }
-      return 0;
-    });
-  }, [trips, sortBy]);
 
-  // Delete trip
-  const handleDelete = (id: string) => {
-    if (!id) return;
-    dispatch(deleteTrip(id));
-  };
+      if (sortBy === "city") {
+        result.sort((a, b) =>
+          (a.city || "").localeCompare(b.city || "")
+        );
+      }
+
+      return result;
+    }, [trips, sortBy, showFavoritesOnly]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        {/* Left */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+          <h1 className="text-2xl font-semibold text-gray-800 dark:text-white">
             Saved Trips
           </h1>
-          <p className="text-gray-500 text-sm dark:text-gray-400">
+          <p className="text-sm text-gray-500">
             Manage your saved travel plans
           </p>
         </div>
 
-        {/* Sort */}
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          className="border rounded-lg px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-        >
-          <option value="latest">Latest</option>
-          <option value="oldest">Oldest</option>
-          <option value="city">City (A-Z)</option>
-        </select>
+        {/* Right Controls */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+
+          {/* Favorites Toggle */}
+          <button
+            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition
+              ${
+                showFavoritesOnly
+                  ? "text-white bg-blue-600 border-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:border-blue-700 dark:hover:bg-blue-800"
+                  : "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+              }`}
+          >
+            ❤️ Favorites
+          </button>
+
+          {/* Sort Dropdown */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2 rounded-lg border bg-gray-100 dark:bg-gray-800 
+                      border-gray-300 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="latest">Latest</option>
+            <option value="oldest">Oldest</option>
+            <option value="city">City</option>
+          </select>
+
+        </div>
       </div>
 
       {/* Empty */}
@@ -69,7 +128,7 @@ export default function SavedTrips() {
 
       {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sortedTrips.map((trip, index) => {
+        {filteredTrips.map((trip, index) => {
           // ✅ SAFE COUNTRY NAME (handles object/string)
           const countryName =
             typeof trip.country?.name === "object"
@@ -90,6 +149,14 @@ rounded-2xl p-5 transition hover:-translate-y-1"
                 <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                   📍 {trip.city || "Unknown"}
                 </h2>
+              <div className="flex items-center gap-2">
+                {/* Favorite Button */}
+                <button
+                  onClick={() => handleFavorite(trip.id)}
+                  className="text-xl transition transform hover:scale-110"
+                >
+                  {trip.isFavorite ? "❤️" : "🤍"}
+                </button>
 
                 <button
                   onClick={() => handleDelete(trip.id)}
@@ -97,6 +164,7 @@ rounded-2xl p-5 transition hover:-translate-y-1"
                 >
                   ❌
                 </button>
+              </div>
               </div>
 
               {/* Country */}
@@ -171,6 +239,14 @@ rounded-2xl p-5 transition hover:-translate-y-1"
           );
         })}
       </div>
+      {/* CONFIRM DELETE MODAL */}
+      <ConfirmModal
+          isOpen={isModalOpen}
+          title="Delete Trip"
+          message="Are you sure to delete this trip?"
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
     </div>
   );
 }
